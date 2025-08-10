@@ -17,8 +17,7 @@ try {
   process.exit(1);
 }
 
-// Default users (corrected syntax)
-const DEFAULT_USERS = ["28259717, "8013817688", "1658013861", "2297463874"]
+const DEFAULT_USERS = ["28259717", "8013817688", "1658013861", "2297463874"];
 
 // Database initialization
 async function initializeDatabase() {
