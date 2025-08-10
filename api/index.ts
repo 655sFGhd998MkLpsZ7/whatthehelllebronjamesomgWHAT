@@ -18,20 +18,7 @@ try {
 }
 
 // Default users (corrected syntax)
-const DEFAULT_USERS = [
-  "37218933",
-  "7905349991", 
-  "28259717",
-  "1044958583",
-  "2297463874",
-  "2296980322",
-  "23647969",
-  "351069",
-  "7281612909",
-  "1578598009",
-  "4721316027",
-  "8609495309"
-];
+const DEFAULT_USERS = ["28259717, "8013817688", "1658013861", "2297463874"]
 
 // Database initialization
 async function initializeDatabase() {
