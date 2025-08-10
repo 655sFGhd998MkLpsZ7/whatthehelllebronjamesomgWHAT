@@ -5,7 +5,6 @@ const fetch = require('node-fetch');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Initialize Turso client
 let turso;
 try {
   turso = createClient({
@@ -19,7 +18,6 @@ try {
 
 const DEFAULT_USERS = ["28259717", "8013817688", "1658013861", "2297463874"];
 
-// Database initialization
 async function initializeDatabase() {
   try {
     await turso.execute(`
@@ -38,7 +36,6 @@ async function initializeDatabase() {
   }
 }
 
-// User initialization
 async function initializeUsers() {
   try {
     const result = await turso.execute("SELECT id FROM users WHERE removed = FALSE");
@@ -51,7 +48,7 @@ async function initializeUsers() {
             const userData = await resp.json();
             await turso.execute({
               sql: "INSERT OR IGNORE INTO users (id, username) VALUES (?, ?)",
-              args: [userId, userData.name]
+              args: [String(userId), userData.name]
             });
           }
         } catch (error) {
@@ -64,7 +61,6 @@ async function initializeUsers() {
   }
 }
 
-// App initialization
 async function initializeApp() {
   try {
     await initializeDatabase();
@@ -78,15 +74,13 @@ async function initializeApp() {
 
 initializeApp();
 
-// Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// Rate limiting
 const rmap = new Map();
-const tw = 60000; // 1 minute window
-const mr = 100; // max 100 requests per window
+const tw = 60000;
+const mr = 100;
 
 const rlim = (req, res, next) => {
   try {
@@ -123,35 +117,28 @@ const rlim = (req, res, next) => {
 
 app.use(rlim);
 
-// Helper function to get current users
 async function getCurrentUsers() {
   try {
     const result = await turso.execute("SELECT id FROM users WHERE removed = FALSE");
-    return result.rows.map(row => row.id);
+    return result.rows.map(row => String(row.id));
   } catch (error) {
     console.error("Error getting current users:", error);
     return [];
   }
 }
 
-// Endpoints
-
-// Health check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
 });
 
-// Root endpoint
 app.get("/", (req, res) => {
   res.json({ message: "NEXIUM" });
 });
 
-// Test endpoint
 app.get("/api/test", (req, res) => {
   res.json({ message: "NEXIUM ON TOP!" });
 });
 
-// Get user IDs as space-separated string
 app.get("/api/id", async (req, res) => {
   try {
     const users = await getCurrentUsers();
@@ -162,12 +149,11 @@ app.get("/api/id", async (req, res) => {
   }
 });
 
-// Get all active users with details
 app.get("/api/users", async (req, res) => {
   try {
     const result = await turso.execute("SELECT id, username FROM users WHERE removed = FALSE");
     const users = result.rows.map(row => ({
-      id: row.id,
+      id: String(row.id),
       username: row.username
     }));
     res.json({ users });
@@ -177,7 +163,6 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-// Add a new user
 app.post("/api/users/add", async (req, res) => {
   const { userid } = req.body;
   console.log(`[ADD] Request to add user: ${userid}`);
@@ -191,7 +176,6 @@ app.post("/api/users/add", async (req, res) => {
   }
 
   try {
-    // Check if user already exists
     const existing = await turso.execute({
       sql: "SELECT 1 FROM users WHERE id = ? AND removed = FALSE",
       args: [userid]
@@ -202,7 +186,6 @@ app.post("/api/users/add", async (req, res) => {
       return res.status(409).json({ error: "User already exists" });
     }
 
-    // Fetch user data from Roblox
     const resp = await fetch(`https://users.roblox.com/v1/users/${userid}`);
     if (!resp.ok) {
       console.log(`[ADD] Failed to fetch user data for ${userid}`);
@@ -211,10 +194,9 @@ app.post("/api/users/add", async (req, res) => {
 
     const userData = await resp.json();
     
-    // Add user to database
     await turso.execute({
       sql: "INSERT OR REPLACE INTO users (id, username, removed) VALUES (?, ?, FALSE)",
-      args: [userid, userData.name]
+      args: [String(userid), userData.name]
     });
 
     console.log(`[ADD] Successfully added user ${userid} (${userData.name})`);
@@ -224,7 +206,7 @@ app.post("/api/users/add", async (req, res) => {
       message: "Success", 
       users,
       addedUser: {
-        id: userid,
+        id: String(userid),
         username: userData.name
       }
     });
@@ -237,7 +219,6 @@ app.post("/api/users/add", async (req, res) => {
   }
 });
 
-// Remove a user
 app.delete("/api/users/remove", async (req, res) => {
   const { userid } = req.body;
   console.log(`[REMOVE] Request to remove user: ${userid}`);
@@ -263,7 +244,7 @@ app.delete("/api/users/remove", async (req, res) => {
     res.json({ 
       message: "Removed", 
       users,
-      removedUserId: userid
+      removedUserId: String(userid)
     });
   } catch (error) {
     console.error("Error removing user:", error);
@@ -274,7 +255,6 @@ app.delete("/api/users/remove", async (req, res) => {
   }
 });
 
-// Get list of active user IDs
 app.get("/api/users/list", async (req, res) => {
   try {
     const users = await getCurrentUsers();
@@ -285,18 +265,15 @@ app.get("/api/users/list", async (req, res) => {
   }
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
 
-// Start server
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Server running at http://0.0.0.0:${port}/`);
 });
 
-// Handle server errors
 server.on('error', (error) => {
   console.error('Server error:', error);
 });
