@@ -35,7 +35,7 @@ async function initializeDatabase() {
   }
 }
 
-const DEFAULT_USERS = ["28259717, "8013817688", "1658013861", "2297463874"];
+const DEFAULT_USERS = ["28259717", "8013817688", "1658013861", "2297463874"];
 
 async function initializeUsers() {
   try {
